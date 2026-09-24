@@ -202,3 +202,35 @@ FROM realtime_updates ru
 JOIN trips t  ON t.id = ru.trip_id
 JOIN routes r ON r.id = t.route_id
 GROUP BY day, r.id;
+
+-- ============ Integrity triggers ============
+-- A CHECK constraint can only see its own row, so the two rules below
+-- (which span tables) are enforced with triggers instead.
+
+-- A payment must equal the exact fare price the ticket was sold at.
+-- (payments -> tickets -> fare_prices is a cross-table rule.)
+CREATE TRIGGER trg_payment_matches_fare
+BEFORE INSERT ON payments
+FOR EACH ROW
+BEGIN
+  SELECT RAISE(ABORT, 'payment amount does not match the ticket fare price')
+  WHERE NEW.amount_cents <> (
+    SELECT fp.price_cents
+    FROM tickets t
+    JOIN fare_prices fp ON fp.id = t.fare_price_id
+    WHERE t.id = NEW.ticket_id
+  );
+END;
+
+-- Terminal ticket states are final: a used/expired/refunded/cancelled ticket
+-- cannot be moved back to an earlier state. This makes "use a single-ride
+-- ticket twice" or "reactivate a refunded ticket" impossible at the DB level,
+-- regardless of what the application code does.
+CREATE TRIGGER trg_ticket_terminal_immutable
+BEFORE UPDATE OF status ON tickets
+FOR EACH ROW
+WHEN OLD.status IN ('used', 'expired', 'refunded', 'cancelled')
+  AND NEW.status <> OLD.status
+BEGIN
+  SELECT RAISE(ABORT, 'illegal transition out of terminal status: ' || OLD.status);
+END;

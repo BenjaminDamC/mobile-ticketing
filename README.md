@@ -40,6 +40,21 @@ open http://localhost:5173.
 `npm run seed` drops and recreates all tables — run it again any time you
 want a clean demo dataset.
 
+To verify the database-level integrity rules (constraints + triggers), run:
+
+```bash
+cd server
+npm run test:integrity
+```
+
+## Database integrity
+
+Business rules are enforced *in the database*, not just in application code.
+See [`docs/INTEGRITY.md`](docs/INTEGRITY.md) for the full map of rule → what
+enforces it. The two cross-table rules a `CHECK` can't express are triggers:
+a payment must equal the ticket's fare price, and a terminal ticket
+(`used`/`expired`/`refunded`/`cancelled`) can never be reactivated.
+
 ## What's in the sample data
 
 Three operators (CityBus, MetroTram, RegioRail) running a bus, a tram, and

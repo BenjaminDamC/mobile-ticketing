@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node src/index.js",
-    "seed": "node src/db/seed.js"
+    "seed": "node src/db/seed.js",
+    "test:integrity": "node scripts/integrity-tests.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",
